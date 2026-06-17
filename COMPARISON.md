@@ -1,11 +1,14 @@
-# Comparison: Hummingbird vs Unhardened
+# Comparison: Hardened vs Unhardened Container Images on Hummingbird
 
-Side-by-side security comparison of the two File Drop projects. Same app, same functionality, radically different security posture.
+Side-by-side security comparison of the two File Drop projects. Same app, same functionality, same Hummingbird OS — radically different container image security posture.
+
+Both projects deploy on **Fedora Hummingbird Linux VMs**. The only difference is the container images running inside them: one uses Hummingbird's hardened `hi/*` images, the other uses standard Docker Hub images that have no hardened equivalent.
 
 ## The stacks
 
 | Component | filedrop-hummingbird | filedrop-unhardened |
 |-----------|---------------------|---------------------|
+| **Host OS** | Fedora Hummingbird VM | Fedora Hummingbird VM |
 | App runtime | Python 3.11 (FastAPI) | Node.js 22 (Express) |
 | App image | `hi/python:3.11` (distroless) | `node:22` (full Debian) |
 | Proxy | `hi/nginx:latest` | `httpd:latest` |
@@ -76,6 +79,6 @@ The CVE count difference is not about the application code — the Express app a
 
 ## The demo pitch
 
-> "Here are two apps that do exactly the same thing: upload a file, get a download link. One runs on hardened Hummingbird images with ~20 CVEs. The other runs on standard Docker Hub images with 200-400+ CVEs. Same functionality. Same uptime. Completely different security exposure."
+> "Here are two Hummingbird VMs running the exact same app — upload a file, get a download link. Both run on the same hardened Hummingbird OS. The difference is the container images inside: one uses Hummingbird's hardened `hi/*` images with ~20 CVEs. The other uses standard Docker Hub images with 200-400+ CVEs. Same OS, same functionality — completely different container-level security."
 >
-> "If your stack has Hummingbird images available, use them. If it doesn't, this is the risk you carry."
+> "Hummingbird locks down the OS, but your container images are your responsibility. If your stack has hardened `hi/*` images, use them. If it doesn't, this is the CVE exposure you carry inside each container."

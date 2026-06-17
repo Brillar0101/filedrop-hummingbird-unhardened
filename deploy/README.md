@@ -1,8 +1,8 @@
-# Deploy File Drop on a Standard Fedora VM
+# Deploy File Drop on a Hummingbird VM (Unhardened Containers)
 
-This deploys the three-container File Drop stack on a **standard Fedora Cloud VM** (not Hummingbird). The VM is a regular Fedora installation with a full OS — shells, package managers, and all the usual system tools.
+This deploys the three-container File Drop stack on a **Fedora Hummingbird VM** — the same hardened OS used by the [filedrop-hummingbird](https://github.com/Brillar0101/filedrop-hummingbird) project. The only difference is the container images: this project uses standard Docker Hub images that have no `hi/*` hardened equivalents. This ensures an apples-to-apples comparison — same OS, different container-level security.
 
-> **Where this runs:** The VM build and boot step must run on a **Linux host with KVM** (it needs `qemu-kvm`, `libvirt`, `virt-install`). A Fedora workstation works perfectly.
+> **Where this runs:** The VM build and boot step must run on a **Linux host with KVM** (it needs `qemu-kvm`, `libvirt`, `virt-install`). A Fedora workstation works perfectly. The Hummingbird disk image must already be built by the filedrop-hummingbird project.
 
 ## What gets built
 
@@ -15,19 +15,22 @@ The three containers, all on standard (unhardened) images:
 
 ## Files
 
-- `01-boot-vm.sh` — download Fedora Cloud qcow2 and boot a VM (run on the Linux/KVM host)
+- `01-boot-vm.sh` — copy the Hummingbird disk image and boot a second VM (run on the Linux/KVM host)
 - `02-deploy-filedrop.sh` — deploy the stack with plain `podman` (run inside the VM)
 
 ## On Fedora: prerequisites (do this first)
 
 ```bash
 # install the VM tools (one time)
-sudo dnf install -y qemu-kvm libvirt virt-install genisoimage
+sudo dnf install -y qemu-kvm libvirt virt-install
 sudo systemctl enable --now libvirtd
 
 # confirm virtualization is available
 ls /dev/kvm                                   # this file must exist
 egrep -c '(vmx|svm)' /proc/cpuinfo            # should print a number > 0
+
+# IMPORTANT: build the Hummingbird disk image first (if not already done)
+cd ~/projects/filedrop-hummingbird/deploy && ./01-build-and-boot-vm.sh
 ```
 
 ## Steps
@@ -39,7 +42,7 @@ cd filedrop-unhardened/deploy
 ./01-boot-vm.sh
 ```
 
-Log in as `core` / `filedrop`.
+Log in as `core` / `hummingbird`.
 
 ### 2. Copy the project onto the VM
 

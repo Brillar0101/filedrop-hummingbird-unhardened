@@ -1,6 +1,6 @@
 # File Drop on Standard Container Images (Unhardened)
 
-A file-upload service built on **standard Docker Hub container images** — the same app as [filedrop-hummingbird](https://github.com/Brillar0101/filedrop-hummingbird), but on a completely different, unhardened stack. This project exists to show what happens when you **don't** use hardened images: same functionality, dramatically more CVEs.
+A file-upload service built on **standard Docker Hub container images**, deployed on a **Fedora Hummingbird VM** — the same app and same host OS as [filedrop-hummingbird](https://github.com/Brillar0101/filedrop-hummingbird), but with container images that have no hardened Hummingbird equivalents. This project exists to show what happens when your container stack doesn't have `hi/*` images: same OS, same functionality, dramatically more CVEs inside the containers.
 
 ## The stack
 
@@ -27,7 +27,7 @@ filedrop-unhardened/
   Dockerfile           single-stage build on node:22
   compose.yaml         runs app + httpd + mysql, 24/7
   httpd.conf           reverse proxy config
-  deploy/              deploy to a standard Fedora VM
+  deploy/              deploy to a Hummingbird VM
   tests/               unit tests (incl. XSS-escaping regression)
 ```
 
@@ -51,9 +51,9 @@ podman-compose up -d
 
 Builds the app on `node:22` and runs the full stack on standard Docker Hub images.
 
-### 3. Deploy on a standard Fedora VM
+### 3. Deploy on a Hummingbird VM
 
-See [`deploy/README.md`](./deploy/README.md). It boots a Fedora Cloud VM and deploys the three-container stack on it.
+See [`deploy/README.md`](./deploy/README.md). It boots a Hummingbird VM (same OS as the hardened project) and deploys the three-container stack on it. This ensures an apples-to-apples comparison — same OS, different container images.
 
 ## The comparison
 
@@ -75,7 +75,7 @@ See [`COMPARISON.md`](./COMPARISON.md) for the full breakdown.
 
 - [`ARCHITECTURE.md`](./ARCHITECTURE.md) — components, deployment topology, build pipeline, security model
 - [`COMPARISON.md`](./COMPARISON.md) — side-by-side security comparison with filedrop-hummingbird
-- [`deploy/README.md`](./deploy/README.md) — deploy on a Fedora VM
+- [`deploy/README.md`](./deploy/README.md) — deploy on a Hummingbird VM
 
 ## Tests
 

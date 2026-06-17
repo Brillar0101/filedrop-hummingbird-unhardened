@@ -4,9 +4,9 @@ This document describes the architecture of the unhardened File Drop deployment.
 
 ## 1. Context
 
-File Drop is a file-upload service: upload a file through a web page, get a download link back. This version runs on **standard Docker Hub images** — the kind most teams use by default. It exists as a security comparison against the Hummingbird-hardened version.
+File Drop is a file-upload service: upload a file through a web page, get a download link back. This version runs on **standard Docker Hub container images** inside a **Fedora Hummingbird VM** — the same host OS as the hardened version. It exists as an apples-to-apples security comparison: same Hummingbird OS, different container images.
 
-The key question this project answers: **what does your CVE exposure look like when you use standard images?**
+The key question this project answers: **what does your CVE exposure look like when your container stack doesn't have hardened `hi/*` images, even on a Hummingbird host?**
 
 ## 2. Logical components
 
@@ -52,10 +52,9 @@ Volumes:
   db-data   -> /var/lib/mysql
 ```
 
-Three run modes (same as hummingbird):
-- **Container:** `podman-compose up -d` on any Linux host
-- **VM:** boot a standard Fedora Cloud VM, deploy with plain podman
-- **Bare metal:** install Fedora, deploy with plain podman
+Deployment (same as hummingbird):
+- **VM:** boot a Hummingbird VM (same OS as the hardened project), deploy with plain podman
+- **Container:** `podman-compose up -d` on any Linux host (for local testing)
 
 ## 4. Build pipeline
 
