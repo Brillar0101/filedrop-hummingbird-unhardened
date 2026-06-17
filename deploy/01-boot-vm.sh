@@ -1,73 +1,42 @@
 #!/usr/bin/env bash
 #
 # 01-boot-vm.sh
-# Download a Fedora Cloud qcow2 image and boot it as a VM.
+# Boot a SECOND Hummingbird VM for the unhardened File Drop stack.
+# Same Hummingbird OS as the hardened project — only the container images differ.
 #
-# RUN THIS ON YOUR LINUX/KVM HOST (not inside a VM).
-# Requires: qemu-kvm, libvirt, virt-install, genisoimage
-#
-# After the VM boots, log in as core / filedrop, then copy the project
-# onto the VM and run 02-deploy-filedrop.sh.
+# RUN THIS ON A LINUX HOST WITH KVM. Requires: podman, qemu-kvm, libvirt, virt-install.
+# The base Hummingbird disk image must already be built (by filedrop-hummingbird's
+# 01-build-and-boot-vm.sh).  This script copies it and boots a second VM.
 
 set -euo pipefail
 
-VM_NAME="fedora-filedrop"
-FEDORA_VERSION="42"
-IMAGE_URL="https://download.fedoraproject.org/pub/fedora/linux/releases/${FEDORA_VERSION}/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-${FEDORA_VERSION}-1.1.x86_64.qcow2"
-IMAGE_DIR="/var/lib/libvirt/images"
-IMAGE_FILE="${IMAGE_DIR}/${VM_NAME}.qcow2"
-CLOUD_INIT_DIR=$(mktemp -d)
+SOURCE_DISK="/var/lib/libvirt/images/qcow2/disk.qcow2"
+OUTPUT_DIR="/var/lib/libvirt/images"
+DISK="${OUTPUT_DIR}/hummingbird-unhardened.qcow2"
+VM_NAME="hummingbird-unhardened"
 
-echo ">> Downloading Fedora ${FEDORA_VERSION} Cloud image (if not cached)..."
-if [ ! -f "${IMAGE_FILE}" ]; then
-    curl -L -o "${IMAGE_FILE}" "${IMAGE_URL}"
-    qemu-img resize "${IMAGE_FILE}" 20G
-else
-    echo "   (already downloaded)"
+if [[ ! -f "${SOURCE_DISK}" ]]; then
+  echo "ERROR: Hummingbird disk image not found at ${SOURCE_DISK}." >&2
+  echo "       Run filedrop-hummingbird/deploy/01-build-and-boot-vm.sh first" >&2
+  echo "       to build the base Hummingbird image." >&2
+  exit 1
 fi
 
-echo ">> Creating cloud-init config..."
-cat > "${CLOUD_INIT_DIR}/meta-data" <<EOF
-instance-id: ${VM_NAME}
-local-hostname: ${VM_NAME}
-EOF
+echo ">> Copying the Hummingbird disk image for the unhardened VM..."
+sudo cp "${SOURCE_DISK}" "${DISK}"
 
-cat > "${CLOUD_INIT_DIR}/user-data" <<EOF
-#cloud-config
-users:
-  - name: core
-    plain_text_passwd: filedrop
-    lock_passwd: false
-    groups: wheel
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-EOF
-
-echo ">> Building cloud-init ISO..."
-genisoimage -output "${CLOUD_INIT_DIR}/cloud-init.iso" \
-    -volid cidata -joliet -rock \
-    "${CLOUD_INIT_DIR}/user-data" "${CLOUD_INIT_DIR}/meta-data" 2>/dev/null
-
-echo ">> Booting VM: ${VM_NAME} (4 GB RAM, 2 vCPUs)..."
-virt-install \
-    --name "${VM_NAME}" \
-    --memory 4096 \
-    --vcpus 2 \
-    --import \
-    --disk "${IMAGE_FILE}" \
-    --disk "${CLOUD_INIT_DIR}/cloud-init.iso",device=cdrom \
-    --os-variant fedora-unknown \
-    --network default \
-    --graphics none \
-    --console pty,target_type=serial \
-    --noautoconsole
+echo ">> Booting the VM '${VM_NAME}'"
+echo ">> Log in as: core / hummingbird   (leave the console with Ctrl+])"
+sudo virt-install \
+  --name "${VM_NAME}" \
+  --memory 4096 --vcpus 2 \
+  --import \
+  --disk "${DISK}" \
+  --os-variant fedora-rawhide \
+  --graphics none \
+  --console pty,target_type=serial
 
 echo
-echo ">> VM '${VM_NAME}' is booting."
-echo ">> Connect with:  virsh console ${VM_NAME}"
-echo ">> Login:          core / filedrop"
-echo ">> Find VM IP:     virsh domifaddr ${VM_NAME}"
-echo
-echo ">> Next: copy the project onto the VM and run 02-deploy-filedrop.sh"
-
-rm -rf "${CLOUD_INIT_DIR}"
+echo ">> VM is up. Next: copy the project onto it and run 02-deploy-filedrop.sh inside the VM."
+echo ">> For example, from this host:"
+echo ">>   scp -r ~/projects/filedrop-unhardened core@<vm-ip>:~/"
