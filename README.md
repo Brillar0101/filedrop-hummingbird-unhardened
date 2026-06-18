@@ -1,6 +1,13 @@
 # File Drop on Standard Container Images (Unhardened)
 
-A file-upload service built on **standard Docker Hub container images**, deployed on a **Fedora Hummingbird VM** — the same app and same host OS as [filedrop-hummingbird](https://github.com/Brillar0101/filedrop-hummingbird), but with container images that have no hardened Hummingbird equivalents. This project exists to show what happens when your container stack doesn't have `hi/*` images: same OS, same functionality, dramatically more CVEs inside the containers.
+A file-upload service built on **standard Docker Hub container images**, deployed on a **Fedora Hummingbird Linux VM** — the same app and same host OS as [filedrop-hummingbird](https://github.com/Brillar0101/filedrop-hummingbird), but with container images from external repositories that have no Hummingbird equivalents.
+
+This project answers two questions:
+
+1. **What is the impact of using external container repositories?** Not every technology has a Hummingbird `hi/*` image. When you pull from Docker Hub, you inherit full OS distributions with hundreds of packages and the CVEs that come with them.
+2. **How does Fedora Hummingbird Linux still protect you?** Even with unhardened containers, the Hummingbird host OS provides an immutable root filesystem, atomic updates via `bootc`, instant rollback, and no host-level package manager. These OS-level protections limit the blast radius of a container-level compromise.
+
+See [`COMPARISON.md`](./COMPARISON.md) for the full side-by-side analysis with the hardened version.
 
 ## The stack
 
@@ -11,7 +18,29 @@ A file-upload service built on **standard Docker Hub container images**, deploye
 | MySQL | Stores file details | `mysql:8` |
 | Volume `/data` | Stores the actual files | mounted volume |
 
-None of these images have a Fedora Hummingbird hardened equivalent. That is the point.
+None of these images have a Hummingbird `hi/*` equivalent. That is the point.
+
+## How this differs from traditional Fedora
+
+On a traditional Fedora server, you would install these services directly on the host:
+
+```bash
+# Traditional Fedora — install on the host
+sudo dnf install nodejs mysql-server httpd
+npm install express multer mysql2
+sudo systemctl enable --now mysqld httpd
+```
+
+On Hummingbird, `dnf install` is blocked because the host root filesystem is read-only. Instead, everything runs as containers — but since there are no `hi/*` images for Node.js, Apache httpd, or MySQL, you pull from Docker Hub:
+
+```bash
+# Hummingbird — containers from external repositories
+podman pull docker.io/library/node:22
+podman pull docker.io/library/httpd:latest
+podman pull docker.io/library/mysql:8
+```
+
+The Hummingbird host OS protections (immutable root, atomic updates, no host package manager) still apply. But inside these containers, you have the full CVE exposure of standard Docker Hub images.
 
 ## What's in this folder
 
@@ -55,25 +84,19 @@ Builds the app on `node:22` and runs the full stack on standard Docker Hub image
 
 See [`deploy/README.md`](./deploy/README.md). It boots a Hummingbird VM (same OS as the hardened project) and deploys the three-container stack on it. This ensures an apples-to-apples comparison — same OS, different container images.
 
-## The comparison
+## Verify the CVE impact
 
-Run `grype` on the app image:
-
-```bash
-grype filedrop-unhardened_app:latest    # expect 200-400+ CVEs
-```
-
-Then compare with the hummingbird version:
+Scan the app image to see the actual CVE count:
 
 ```bash
-grype filedrop_app:latest               # ~20 CVEs
+grype filedrop-unhardened_app:latest
 ```
 
-See [`COMPARISON.md`](./COMPARISON.md) for the full breakdown.
+Then compare with the hummingbird version to see the difference that distroless images make. See [`COMPARISON.md`](./COMPARISON.md) for the full breakdown and scanning commands.
 
 ## Docs
 
-- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — components, deployment topology, build pipeline, security model
+- [`ARCHITECTURE.md`](./ARCHITECTURE.md) — components, deployment topology, build pipeline, security model, and what Hummingbird Linux still provides
 - [`COMPARISON.md`](./COMPARISON.md) — side-by-side security comparison with filedrop-hummingbird
 - [`deploy/README.md`](./deploy/README.md) — deploy on a Hummingbird VM
 
@@ -87,7 +110,7 @@ Covers the HTML rendering, including the filename-escaping (XSS) safeguard.
 
 ## Notes
 
-- All images are from Docker Hub (`docker.io/library/`). None are hardened.
+- All images are from Docker Hub (`docker.io/library/`). None are Hummingbird images.
 - The Dockerfile is a **single-stage build** that runs as **root** and ships with npm, bash, and apt in the final image. This is the standard approach — and the reason for the high CVE count.
 - The httpd config deliberately omits security headers that the hummingbird project includes.
 - Uploaded files go to the `/data` volume. `DATABASE_URL` is required from the environment.
