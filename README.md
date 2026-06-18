@@ -1,4 +1,4 @@
-# File Drop on Standard Container Images
+# File Drop using Standard Container Images
 
 A file-upload service built on standard Docker Hub container images, deployed on a Fedora Hummingbird Linux VM. Same app and same host OS as [filedrop-hummingbird-hardened](https://github.com/Brillar0101/filedrop-hummingbird-hardened), but with container images from external repositories that have no Hummingbird `hi/*` equivalents.
 
